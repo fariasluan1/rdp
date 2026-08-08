@@ -1,41 +1,30 @@
-name: Moonlight Cloud Stream
+name: Moonlight Windows Stream
 
 on:
-  workflow_dispatch: # Permite iniciar manualmente pelo botão "Run workflow"
+  workflow_dispatch:
 
 jobs:
   stream:
-    runs-on: ubuntu-latest
+    runs-on: windows-latest
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Instalar Dependências (Xvfb, XFCE e Sunshine)
+      - name: Instalar Tailscale
         run: |
-          sudo apt-get update
-          sudo apt-get install -y xvfb xfce4 xfce4-terminal dbus-x11 kmod
-          curl -s https://pkgs.tailscale.com/stable/ubuntu/jammy.noarmor.gpg | sudo tee /usr/share/keyrings/tailscale-archive-keyring.gpg >/dev/null
-          curl -s https://pkgs.tailscale.com/stable/ubuntu/jammy.tailscale-keyring.list | sudo tee /etc/apt/sources.list.d/tailscale.list
-          sudo apt-get update && sudo apt-get install -y tailscale
-          # Instala o Sunshine
-          wget https://github.com/LizardByte/Sunshine/releases/download/v0.21.0/sunshine-ubuntu-22.04-amd64.deb
-          sudo apt-get install -y ./sunshine-ubuntu-22.04-amd64.deb
+          choco install tailscale -y
+          refreshenv
 
       - name: Conectar ao Tailscale
+        shell: cmd
         run: |
-          sudo tailscaled --tun=userspace-networking --state=/var/lib/tailscale/tailscaled.state --socket=/var/run/tailscale/tailscaled.sock > /dev/null 2>&1 &
-          sleep 3
-          sudo tailscale --socket=/var/run/tailscale/tailscaled.sock up --authkey="${{ secrets.TAILSCALE_AUTH_KEY }}" --hostname=github-runner
+          "C:\Program Files\Tailscale\tailscale.exe" up --authkey="${{ secrets.TAILSCALE_AUTH_KEY }}" --hostname=github-win-runner
 
-      - name: Iniciar Interface Gráfica e Sunshine
+      - name: Instalar e Iniciar Sunshine
+        shell: powershell
         run: |
-          # 1. Cria o display virtual com Xvfb
-          Xvfb :99 -screen 0 1280x720x24 > /dev/null 2>&1 &
-          sleep 2
-
-          # 2. Inicia o ambiente de trabalho XFCE
-          DISPLAY=:99 startxfce4 > /dev/null 2>&1 &
-          sleep 3
-
-          # 3. Mantém o Sunshine rodando
-          DISPLAY=:99 sunshine --bind-address=0.0.0.0
+          # Baixa e instala o Sunshine via Choco
+          choco install sunshine -y
+          
+          # Inicia o serviço do Sunshine
+          Start-Process -FilePath "C:\Program Files\Sunshine\sunshine.exe" -ArgumentList "--bind-address=0.0.0.0" -NoNewWindow -Wait
