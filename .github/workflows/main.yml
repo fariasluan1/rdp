@@ -20,33 +20,37 @@ jobs:
         run: |
           "C:\Program Files\Tailscale\tailscale.exe" up --authkey="${{ secrets.TAILSCALE_AUTH_KEY }}" --hostname=github-win-runner
 
-      - name: Configurar Wallpaper
+      - name: Baixar e Aplicar Wallpaper
         shell: powershell
         run: |
+          # 1. Baixa o wallpaper do seu repositório
           $rawUrl = "https://raw.githubusercontent.com/fariasluan1/rdp/main/wallpaper.jpg"
           $imgPath = "C:\Users\Public\wallpaper.jpg"
           
           Invoke-WebRequest -Uri $rawUrl -OutFile $imgPath
 
           if (Test-Path $imgPath) {
+              # 2. Registra o wallpaper nas configurações da área de trabalho
               Set-ItemProperty -Path 'HKCU:\Control Panel\Desktop' -Name wallpaper -Value $imgPath
-              rundll32.exe user32.dll, UpdatePerUserSystemParameters 1, True
+              Set-ItemProperty -Path 'HKCU:\Control Panel\Desktop' -Name WallpaperStyle -Value "2" # Esticar/Ajustar
+              
+              # 3. Reinicia o Explorer para fechar o pop-up de erro e carregar a imagem na hora
+              Stop-Process -Name explorer -Force -ErrorAction SilentlyContinue
+              Start-Sleep -Seconds 2
+              Start-Process explorer.exe
+              Write-Host "Wallpaper aplicado e interface reiniciada!"
           }
 
       - name: Instalar e Iniciar Sunshine
         shell: powershell
         run: |
-          # Instalação do Sunshine
           choco install sunshine --no-progress -y
           
-          # Regras completas de Firewall para Áudio/Vídeo do Moonlight
           New-NetFirewallRule -DisplayName "Sunshine Web UI" -Direction Inbound -LocalPort 47990 -Protocol TCP -Action Allow
           New-NetFirewallRule -DisplayName "Sunshine Stream TCP" -Direction Inbound -LocalPort 47984,47989,47999,48010 -Protocol TCP -Action Allow
           New-NetFirewallRule -DisplayName "Sunshine Stream UDP" -Direction Inbound -LocalPort 47998,47999,48000,48002,48010 -Protocol UDP -Action Allow
 
-          # Executa o Sunshine e aguarda 5 segundos para inicializar os drivers
           Start-Process -FilePath "C:\Program Files\Sunshine\sunshine.exe" -ArgumentList "--bind-address=0.0.0.0"
           Start-Sleep -Seconds 5
           
-          # Mantém o workflow rodando
           while ($true) { Start-Sleep -Seconds 60 }
