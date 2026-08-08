@@ -23,16 +23,18 @@ jobs:
       - name: Configurar Wallpaper do Repositório
         shell: powershell
         run: |
-          $wallpaperFile = "wallpaper.jpg"
-          $localPath = "$env:GITHUB_WORKSPACE\$wallpaperFile"
+          # Baixa o wallpaper diretamente do link raw do seu repositório
+          $rawUrl = "https://raw.githubusercontent.com/fariasluan1/rdp/main/wallpaper.jpg"
+          $imgPath = "C:\Users\Public\wallpaper.jpg"
+          
+          Invoke-WebRequest -Uri $rawUrl -OutFile $imgPath
 
-          if (Test-Path $localPath) {
-              Write-Host "Configurando wallpaper..."
-              Set-ItemProperty -Path 'HKCU:\Control Panel\Desktop' -Name wallpaper -Value $localPath
-              rundll32.exe user32.dll, UpdatePerUserSystemParameters
-              Write-Host "Wallpaper aplicado com sucesso!"
+          if (Test-Path $imgPath) {
+              Set-ItemProperty -Path 'HKCU:\Control Panel\Desktop' -Name wallpaper -Value $imgPath
+              rundll32.exe user32.dll, UpdatePerUserSystemParameters 1, True
+              Write-Host "Wallpaper alterado com sucesso!"
           } else {
-              Write-Warning "Arquivo $wallpaperFile nao foi encontrado na raiz do repositorio."
+              Write-Warning "Falha ao baixar a imagem."
           }
 
       - name: Liberar Firewall e Iniciar Sunshine
