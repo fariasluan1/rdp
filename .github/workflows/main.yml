@@ -20,13 +20,42 @@ jobs:
         run: |
           "C:\Program Files\Tailscale\tailscale.exe" up --authkey="${{ secrets.TAILSCALE_AUTH_KEY }}" --hostname=github-win-runner
 
+      - name: Configurar Wallpaper do Repositório
+        shell: powershell
+        run: |
+          # Nome do arquivo de imagem salvo na raiz do seu repositório GitHub
+          $wallpaperFile = "wallpaper.jpg"
+          $localPath = "$env:GITHUB_WORKSPACE\$wallpaperFile"
+
+          if (Test-Path $localPath) {
+              Write-Host "Configurando wallpaper do repositório..."
+              
+              $code = @"
+              using System;
+              using System.Runtime.InteropServices;
+              namespace Win32 {
+                  public class NativeMethods {
+                      [DllImport("user32.dll", CharSet = CharSet.Auto)]
+                      public static extern int SystemParametersInfo(int uAction, int uParam, string lpvParam, int fuWinIni);
+                  }
+              }
+"@
+              Add-Type -TypeDefinition $code
+              
+              # Aplica a imagem como papel de parede no Windows
+              [Win32.NativeMethods]::SystemParametersInfo(20, 0, $localPath, 3)
+              Write-Host "Wallpaper configurado com sucesso!"
+          } else {
+              Write-Warning "O arquivo $wallpaperFile não foi encontrado na raiz do repositório."
+          }
+
       - name: Liberar Firewall e Iniciar Sunshine
         shell: powershell
         run: |
           # 1. Instala o Sunshine
           choco install sunshine -y
           
-          # 2. Libera a porta do Sunshine no Firewall do Windows
+          # 2. Libera as portas no Firewall do Windows
           New-NetFirewallRule -DisplayName "Sunshine Web UI" -Direction Inbound -LocalPort 47990 -Protocol TCP -Action Allow
           New-NetFirewallRule -DisplayName "Sunshine Stream" -Direction Inbound -LocalPort 47984,47989,47999,48010 -Protocol TCP -Action Allow
           New-NetFirewallRule -DisplayName "Sunshine UDP" -Direction Inbound -LocalPort 47998,47999,48000,48002,48010 -Protocol UDP -Action Allow
@@ -34,5 +63,5 @@ jobs:
           # 3. Inicia o Sunshine
           Start-Process -FilePath "C:\Program Files\Sunshine\sunshine.exe" -ArgumentList "--bind-address=0.0.0.0"
           
-          # 4. Mantém a máquina ligada
+          # 4. Mantém a máquina ativa
           while ($true) { Start-Sleep -Seconds 60 }
