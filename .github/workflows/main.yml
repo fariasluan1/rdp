@@ -20,14 +20,19 @@ jobs:
         run: |
           "C:\Program Files\Tailscale\tailscale.exe" up --authkey="${{ secrets.TAILSCALE_AUTH_KEY }}" --hostname=github-win-runner
 
-      - name: Instalar e Iniciar Sunshine
+      - name: Liberar Firewall e Iniciar Sunshine
         shell: powershell
         run: |
-          # Baixa e instala o Sunshine
+          # 1. Instala o Sunshine
           choco install sunshine -y
           
-          # Inicia o Sunshine em segundo plano
+          # 2. Libera a porta do Sunshine no Firewall do Windows
+          New-NetFirewallRule -DisplayName "Sunshine Web UI" -Direction Inbound -LocalPort 47990 -Protocol TCP -Action Allow
+          New-NetFirewallRule -DisplayName "Sunshine Stream" -Direction Inbound -LocalPort 47984,47989,47999,48010 -Protocol TCP -Action Allow
+          New-NetFirewallRule -DisplayName "Sunshine UDP" -Direction Inbound -LocalPort 47998,47999,48000,48002,48010 -Protocol UDP -Action Allow
+
+          # 3. Inicia o Sunshine
           Start-Process -FilePath "C:\Program Files\Sunshine\sunshine.exe" -ArgumentList "--bind-address=0.0.0.0"
           
-          # Loop infinito para manter o runner ativo durante a jogatina
+          # 4. Mantém a máquina ligada
           while ($true) { Start-Sleep -Seconds 60 }
