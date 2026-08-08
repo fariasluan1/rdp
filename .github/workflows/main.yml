@@ -23,8 +23,11 @@ jobs:
       - name: Instalar e Iniciar Sunshine
         shell: powershell
         run: |
-          # Baixa e instala o Sunshine via Choco
+          # Baixa e instala o Sunshine
           choco install sunshine -y
           
-          # Inicia o serviço do Sunshine
-          Start-Process -FilePath "C:\Program Files\Sunshine\sunshine.exe" -ArgumentList "--bind-address=0.0.0.0" -NoNewWindow -Wait
+          # Inicia o Sunshine em segundo plano
+          Start-Process -FilePath "C:\Program Files\Sunshine\sunshine.exe" -ArgumentList "--bind-address=0.0.0.0"
+          
+          # Loop infinito para manter o runner ativo durante a jogatina
+          while ($true) { Start-Sleep -Seconds 60 }
